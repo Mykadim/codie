@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Code Breaker</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        background: #1a1a1a;
+        color: white;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        overflow: hidden;
+        padding: 5px;
+    }
+
+    body.light-mode {
+        background: #f5f5f5;
+        color: #333;
+    }
+
+    .container {
+        max-width: 500px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100%;
+        justify-content: space-between;
+        padding: 5px 0;
+    }
+
+    .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 8px 0;
+        border-bottom: 1px solid #3a3a3a;
+    }
+
+    body.light-mode .header {
+        border-bottom-color: #ddd;
+    }
+
+    .header-left, .header-right {
+        display: flex;
+        gap: 8px;
+    }
+
+    .icon-btn {
+        width: 30px;
+        height: 30px;
+        background: transparent;
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+
+    body.light-mode .icon-btn {
+        color: #333;
+    }
+
+    .icon-btn:hover {
+        background: rgba(255,255,255,0.1);
+    }
+
+    body.light-mode .icon-btn:hover {
+        background: rgba(0,0,0,0.1);
+    }
+
+    h1 {
+        text-align: center;
+        font-size: 1.5em;
+        font-weight: bold;
+        letter-spacing: 0.3px;
+    }
+
+    .settings-bar {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        margin: 8px 0;
+    }
+
+    .setting-btn {
+        padding: 6px 12px;
+        border: 2px solid #3a3a3a;
+        background: transparent;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 11px;
+        transition: all 0.2s ease;
+        color: white;
+    }
+
+    body.light-mode .setting-btn {
+        border-color: #ddd;
+        color: #333;
+    }
+
+    .setting-btn.active {
+        background: #538d4e;
+        border-color: #538d4e;
+        color: white;
+    }
+
+    .info-panel {
+        padding: 6px;
+        text-align: center;
+        font-size: 12px;
+    }
+
+    #wordle-grid {
+        display: grid;
+        gap: 4px;
+        margin: 8px auto;
+        justify-content: center;
+    }
+
+    #wordle-grid.easy-grid {
+        grid-template-rows: repeat(6, 48px);
+        grid-template-columns: repeat(4, 48px);
+    }
+
+    #wordle-grid.hard-grid {
+        grid-template-rows: repeat(4, 48px);
+        grid-template-columns: repeat(5, 48px);
+    }
+
+    .tile {
+        width: 48px;
+        height: 48px;
+        border: 2px solid #3a3a3a;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 24px;
+        font-weight: bold;
+        transition: all 0.2s ease;
+        background: transparent;
+        color: white;
+    }
+
+    body.light-mode .tile {
+        border-color: #d3d6da;
+        color: #333;
+    }
+
+    .tile.filled {
+        border-color: #565758;
+        animation: pop 0.1s ease;
+    }
+
+    @keyframes pop {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+
+    .tile.correct {
+        background: #538d4e;
+        border-color: #538d4e;
+        color: white;
+        animation: flip 0.5s ease;
+    }
+
+    .tile.present {
+        background: #b59f3b;
+        border-color: #b59f3b;
+        color: white;
+        animation: flip 0.5s ease;
+    }
+
+    .tile.absent {
+        background: #3a3a3c;
+        border-color: #3a3a3c;
+        color: white;
+        animation: flip 0.5s ease;
+    }
+
+    @keyframes flip {
+        0% { transform: rotateX(0); }
+        50% { transform: rotateX(90deg); }
+        100% { transform: rotateX(0); }
+    }
+
+    #keyboard {
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        margin-bottom: 5px;
+    }
+
+    .keyboard-row {
+        display: flex;
+        gap: 5px;
+        justify-content: center;
+    }
+
+    .key {
+        min-width: 38px;
+        height: 48px;
+        background: #818384;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        user-select: none;
+        border-radius: 4px;
+        font-weight: bold;
+        font-size: 18px;
+        transition: all 0.1s ease;
+        border: none;
+        color: white;
+        flex: 1;
+        max-width: 55px;
+    }
+
+    body.light-mode .key {
+        background: #d3d6da;
+        color: #000;
+    }
+
+    .key:hover:not(.disabled) {
+        opacity: 0.8;
+    }
+
+    .key:active:not(.disabled) {
+        transform: scale(0.95);
+    }
+
+    .key.correct {
+        background: #538d4e;
+        color: white;
+    }
+
+    .key.present {
+        background: #b59f3b;
+        color: white;
+    }
+
+    .key.absent {
+        background: #3a3a3c;
+        color: white;
+    }
+
+    .key.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    body.light-mode .key.disabled {
+        background: #dc3545;
+        color: white;
+    }
+    body.light-mode .tile.absent {
+    background: #f8d7da;
+    border-color: #f5c2c7;
+    color: #dc3545;
+}
+
+    .key.wide {
+        flex: 1.5;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+
+    #message {
+        text-align: center;
+        font-size: 13px;
+        font-weight: bold;
+        min-height: 20px;
+        padding: 4px;
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    .modal-content {
+        background: #1a1a1a;
+        padding: 30px;
+        border-radius: 8px;
+        text-align: center;
+        max-width: 380px;
+        width: 90%;
+        animation: slideIn 0.3s ease;
+        border: 1px solid #3a3a3a;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    body.light-mode .modal-content {
+        background: #fff;
+        color: #333;
+        border-color: #ddd;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateY(-50px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .modal h2 {
+        margin-bottom: 20px;
+        font-size: 1.8em;
+    }
+
+    .modal button {
+        margin-top: 15px;
+        padding: 12px 30px;
+        font-size: 16px;
+        border: none;
+        border-radius: 4px;
+        background: #538d4e;
+        color: white;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.2s ease;
+    }
+
+    .modal button:hover {
+        opacity: 0.9;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+        margin: 20px 0;
+    }
+
+    .stat-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 15px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 8px;
+        border: 1px solid #3a3a3a;
+    }
+
+    body.light-mode .stat-item {
+        background: rgba(0,0,0,0.02);
+        border-color: #ddd;
+    }
+
+    .stat-number {
+        font-size: 2em;
+        font-weight: bold;
+        color: #538d4e;
+    }
+
+    .stat-label {
+        font-size: 0.9em;
+        margin-top: 5px;
+        opacity: 0.7;
+    }
+
+    .help-content {
+        text-align: left;
+        margin: 20px 0;
+    }
+
+    .help-example {
+        display: flex;
+        gap: 5px;
+        margin: 10px 0;
+        justify-content: center;
+    }
+
+    .help-tile {
+        width: 40px;
+        height: 40px;
+        border: 2px solid #3a3a3a;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 20px;
+        font-weight: bold;
+        border-radius: 3px;
+    }
+
+    @media (max-width: 400px) {
+        h1 {
+            font-size: 1.3em;
+        }
+
+        .tile {
+            width: 42px;
+            height: 42px;
+            font-size: 20px;
+        }
+
+        #wordle-grid.easy-grid {
+            grid-template-rows: repeat(6, 42px);
+            grid-template-columns: repeat(4, 42px);
+        }
+
+        #wordle-grid.hard-grid {
+            grid-template-rows: repeat(4, 42px);
+            grid-template-columns: repeat(5, 42px);
+        }
+
+        .key {
+            min-width: 32px;
+            height: 44px;
+            font-size: 16px;
+        }
+    }
+
+    @media (max-height: 700px) {
+        .tile {
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+        }
+
+        #wordle-grid.easy-grid {
+            grid-template-rows: repeat(6, 40px);
+            grid-template-columns: repeat(4, 40px);
+        }
+
+        #wordle-grid.hard-grid {
+            grid-template-rows: repeat(4, 40px);
+            grid-template-columns: repeat(5, 40px);
+        }
+
+        .key {
+            height: 42px;
+        }
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div class="header-left">
+            <button class="icon-btn" id="helpBtn" title="Help">?</button>
+        </div>
+        <h1>CODE BREAKER</h1>
+        <div class="header-right">
+            <button class="icon-btn" id="statsBtn" title="Statistics">📊</button>
+            <button class="icon-btn" id="darkModeBtn" title="Toggle Theme">🌙</button>
+        </div>
+    </div>
+
+    <div class="settings-bar">
+        <button class="setting-btn active" id="easyBtn">Easy (4 digits)</button>
+        <button class="setting-btn" id="hardBtn">Hard (5 digits)</button>
+    </div>
+
+    <div class="info-panel">
+        <div><strong>Attempts:</strong> <span id="attempts">0</span>/<span id="maxAttemptsDisplay">6</span></div>
+    </div>
+
+    <div id="wordle-grid"></div>
+
+    <div id="keyboard">
+        <div class="keyboard-row" id="row1"></div>
+        <div class="keyboard-row" id="row2"></div>
+        <div class="keyboard-row" id="row3"></div>
+    </div>
+
+    <div id="message"></div>
+</div>
+
+<div class="modal" id="helpModal">
+    <div class="modal-content">
+        <h2>How to Play</h2>
+        <div class="help-content">
+            <p style="margin-bottom: 15px;">Guess the secret code! You have limited attempts.</p>
+            
+            <p style="margin: 10px 0;"><strong>After each guess:</strong></p>
+            
+            <div class="help-example">
+                <div class="help-tile" style="background: #538d4e; border-color: #538d4e; color: white;">5</div>
+                <span style="align-self: center; margin-left: 10px;">Correct position</span>
+            </div>
+            
+            <div class="help-example">
+                <div class="help-tile" style="background: #b59f3b; border-color: #b59f3b; color: white;">3</div>
+                <span style="align-self: center; margin-left: 10px;">Wrong position</span>
+            </div>
+            
+            <div class="help-example">
+                <div class="help-tile" style="background: #3a3a3c; border-color: #3a3a3c; color: white;">7</div>
+                <span style="align-self: center; margin-left: 10px;">Not in code</span>
+            </div>
+        </div>
+        <button onclick="closeModal('helpModal')">Got it!</button>
+    </div>
+</div>
+
+<div class="modal" id="statsModal">
+    <div class="modal-content">
+        <h2>Statistics</h2>
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number" id="gamesPlayed">0</div>
+                <div class="stat-label">Played</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="gamesWon">0</div>
+                <div class="stat-label">Won</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="gamesLost">0</div>
+                <div class="stat-label">Lost</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="winRate">0%</div>
+                <div class="stat-label">Win Rate</div>
+            </div>
+        </div>
+        <button onclick="closeModal('statsModal')">Close</button>
+    </div>
+</div>
+
+<div class="modal" id="gameOverModal">
+    <div class="modal-content">
+        <h2 id="modalTitle">Game Over!</h2>
+        <p id="modalMessage" style="font-size: 1.2em; margin: 20px 0;"></p>
+        <div class="stats-grid" style="margin-top: 20px;">
+            <div class="stat-item">
+                <div class="stat-number" id="modalGamesPlayed">0</div>
+                <div class="stat-label">Played</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="modalGamesWon">0</div>
+                <div class="stat-label">Won</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="modalGamesLost">0</div>
+                <div class="stat-label">Lost</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="modalWinRate">0%</div>
+                <div class="stat-label">Win Rate</div>
+            </div>
+        </div>
+        <button onclick="resetGame()">Play Again</button>
+    </div>
+</div>
+
+<script>
+    let secretCode = [];
+    let currentRow = 0;
+    let currentGuess = [];
+    let gameOver = false;
+    let hardMode = false;
+    let maxAttempts = 6;
+    let disabledKeys = new Set();
+    let stats = {
+        played: 0,
+        won: 0,
+        lost: 0
+    };
+
+    function loadStats() {
+        const saved = localStorage.getItem('codeBreaker_stats');
+        if (saved) {
+            stats = JSON.parse(saved);
+        }
+        updateStatsDisplay();
+    }
+
+    function saveStats() {
+        localStorage.setItem('codeBreaker_stats', JSON.stringify(stats));
+        updateStatsDisplay();
+    }
+
+    function updateStatsDisplay() {
+        const winRate = stats.played > 0 ? Math.round((stats.won / stats.played) * 100) : 0;
+        
+        document.getElementById('gamesPlayed').textContent = stats.played;
+        document.getElementById('gamesWon').textContent = stats.won;
+        document.getElementById('gamesLost').textContent = stats.lost;
+        document.getElementById('winRate').textContent = winRate + '%';
+        
+        document.getElementById('modalGamesPlayed').textContent = stats.played;
+        document.getElementById('modalGamesWon').textContent = stats.won;
+        document.getElementById('modalGamesLost').textContent = stats.lost;
+        document.getElementById('modalWinRate').textContent = winRate + '%';
+    }
+
+    function generateCode() {
+        const length = hardMode ? 5 : 4;
+        secretCode = [];
+        for (let i = 0; i < length; i++) {
+            secretCode.push(Math.floor(Math.random() * 10));
+        }
+        console.log('Secret code:', secretCode.join(''));
+    }
+
+    function createGrid() {
+        const grid = document.getElementById('wordle-grid');
+        grid.innerHTML = '';
+        const cols = hardMode ? 5 : 4;
+        const rows = hardMode ? 4 : 6;
+        
+        grid.className = hardMode ? 'hard-grid' : 'easy-grid';
+        
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.id = `tile-${row}-${col}`;
+                grid.appendChild(tile);
+            }
+        }
+    }
+
+    function createKeyboard() {
+        disabledKeys.clear();
+        
+        const row1 = ['1', '2', '3', '4', '5'];
+        const row2 = ['6', '7', '8', '9', '0'];
+        const row3 = ['enter', 'backspace'];
+        
+        const row1El = document.getElementById('row1');
+        const row2El = document.getElementById('row2');
+        const row3El = document.getElementById('row3');
+        
+        row1El.innerHTML = '';
+        row2El.innerHTML = '';
+        row3El.innerHTML = '';
+        
+        row1.forEach(key => createKey(key, row1El));
+        row2.forEach(key => createKey(key, row2El));
+        row3.forEach(key => createKey(key, row3El, true));
+    }
+
+    function createKey(key, container, isWide = false) {
+        const keyDiv = document.createElement('button');
+        keyDiv.className = 'key' + (isWide ? ' wide' : '');
+        keyDiv.id = `key-${key}`;
+        
+        if (key === 'enter') {
+            keyDiv.textContent = 'ENTER';
+        } else if (key === 'backspace') {
+            keyDiv.innerHTML = '⌫';
+        } else {
+            keyDiv.textContent = key;
+        }
+        
+        keyDiv.addEventListener('click', () => handleKeyPress(key));
+        container.appendChild(keyDiv);
+    }
+
+    function handleKeyPress(key) {
+        if (gameOver) return;
+        
+        if (disabledKeys.has(key)) return;
+        
+        const codeLength = hardMode ? 5 : 4;
+        
+        if (key === 'backspace') {
+            if (currentGuess.length > 0) {
+                currentGuess.pop();
+                updateCurrentRow();
+            }
+        } else if (key === 'enter') {
+            if (currentGuess.length === codeLength) {
+                submitGuess();
+            } else {
+                showMessage('Not enough digits!');
+            }
+        } else if (currentGuess.length < codeLength) {
+            currentGuess.push(parseInt(key));
+            updateCurrentRow();
+        }
+    }
+
+    function updateCurrentRow() {
+        const codeLength = hardMode ? 5 : 4;
+        for (let i = 0; i < codeLength; i++) {
+            const tile = document.getElementById(`tile-${currentRow}-${i}`);
+            if (i < currentGuess.length) {
+                tile.textContent = currentGuess[i];
+                tile.classList.add('filled');
+            } else {
+                tile.textContent = '';
+                tile.classList.remove('filled');
+            }
+        }
+    }
+
+    function submitGuess() {
+        const codeLength = hardMode ? 5 : 4;
+        const usedSecretIndices = new Array(codeLength).fill(false);
+        const result = new Array(codeLength).fill('absent');
+        
+        for (let i = 0; i < codeLength; i++) {
+            if (currentGuess[i] === secretCode[i]) {
+                result[i] = 'correct';
+                usedSecretIndices[i] = true;
+            }
+        }
+        for (let i = 0; i < codeLength; i++) {
+            if (result[i] === 'absent') {
+                for (let j = 0; j < codeLength; j++) {
+                    if (!usedSecretIndices[j] && currentGuess[i] === secretCode[j]) {
+                        result[i] = 'present';
+                        usedSecretIndices[j] = true;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Track keyboard updates for each unique digit
+        const keyboardUpdates = {};
+        
+        for (let i = 0; i < codeLength; i++) {
+            const digit = currentGuess[i];
+            const state = result[i];
+            
+            // Determine the best state for this digit
+            if (!keyboardUpdates[digit]) {
+                keyboardUpdates[digit] = state;
+            } else {
+                // Priority: correct > present > absent
+                if (state === 'correct') {
+                    keyboardUpdates[digit] = 'correct';
+                } else if (state === 'present' && keyboardUpdates[digit] !== 'correct') {
+                    keyboardUpdates[digit] = 'present';
+                }
+            }
+        }
+        
+        // Update tiles with animation
+        for (let i = 0; i < codeLength; i++) {
+            const tile = document.getElementById(`tile-${currentRow}-${i}`);
+            const state = result[i];
+            
+            setTimeout(() => {
+                tile.classList.add(state);
+            }, i * 100);
+        }
+        
+        // Update keyboard after all tiles are done
+        setTimeout(() => {
+            for (const [digit, bestState] of Object.entries(keyboardUpdates)) {
+                const keyEl = document.getElementById(`key-${digit}`);
+                
+                if (keyEl) {
+                    if (bestState === 'absent') {
+                        disabledKeys.add(digit.toString());
+                        keyEl.classList.remove('correct', 'present');
+                        keyEl.classList.add('absent', 'disabled');
+                    } else if (bestState === 'correct') {
+                        keyEl.classList.remove('absent', 'present', 'disabled');
+                        keyEl.classList.add('correct');
+                        disabledKeys.delete(digit.toString());
+                    } else if (bestState === 'present') {
+                        if (!keyEl.classList.contains('correct')) {
+                            keyEl.classList.remove('absent', 'disabled');
+                            keyEl.classList.add('present');
+                            disabledKeys.delete(digit.toString());
+                        }
+                    }
+                }
+            }
+        }, codeLength * 100);
+        
+        if (result.every(r => r === 'correct')) {
+            setTimeout(() => {
+                gameOver = true;
+                stats.played++;
+                stats.won++;
+                saveStats();
+                showModal('gameOverModal', '🎉 You Won!', `You cracked the code in ${currentRow + 1} attempts!`);
+            }, codeLength * 100 + 300);
+            return;
+        }
+        
+        currentRow++;
+        document.getElementById('attempts').textContent = currentRow;
+        currentGuess = [];
+        
+        if (currentRow >= maxAttempts) {
+            setTimeout(() => {
+                gameOver = true;
+                stats.played++;
+                stats.lost++;
+                saveStats();
+                showModal('gameOverModal', '😔 Game Over', `The code was: ${secretCode.join('')}`);
+            }, 500);
+        }
+    }
+
+    function showMessage(msg) {
+        const messageEl = document.getElementById('message');
+        messageEl.textContent = msg;
+        setTimeout(() => {
+            messageEl.textContent = '';
+        }, 2000);
+    }
+
+    function showModal(modalId, title, message) {
+        if (title) document.getElementById('modalTitle').textContent = title;
+        if (message) document.getElementById('modalMessage').textContent = message;
+        document.getElementById(modalId).style.display = 'flex';
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+
+    function resetGame() {
+        currentRow = 0;
+        currentGuess = [];
+        gameOver = false;
+        disabledKeys.clear();
+        document.getElementById('attempts').textContent = '0';
+        document.getElementById('maxAttemptsDisplay').textContent = maxAttempts;
+        document.getElementById('message').textContent = '';
+        closeModal('gameOverModal');
+        
+        generateCode();
+        createGrid();
+        createKeyboard();
+    }
+
+    document.getElementById('darkModeBtn').addEventListener('click', function() {
+        document.body.classList.toggle('light-mode');
+        this.textContent = document.body.classList.contains('light-mode') ? '☀️' : '🌙';
+    });
+
+    document.getElementById('easyBtn').addEventListener('click', function() {
+        if (!hardMode) return;
+        hardMode = false;
+        maxAttempts = 6;
+        this.classList.add('active');
+        document.getElementById('hardBtn').classList.remove('active');
+        resetGame();
+    });
+
+    document.getElementById('hardBtn').addEventListener('click', function() {
+        if (hardMode) return;
+        hardMode = true;
+        maxAttempts = 4;
+        this.classList.add('active');
+        document.getElementById('easyBtn').classList.remove('active');
+        resetGame();
+    });
+
+    document.getElementById('helpBtn').addEventListener('click', function() {
+        showModal('helpModal');
+    });
+
+    document.getElementById('statsBtn').addEventListener('click', function() {
+        showModal('statsModal');
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key >= '0' && e.key <= '9') {
+            handleKeyPress(e.key);
+        } else if (e.key === 'Enter') {
+            handleKeyPress('enter');
+        } else if (e.key === 'Backspace') {
+            handleKeyPress('backspace');
+        }
+    });
+
+    loadStats();
+    generateCode();
+    createGrid();
+    createKeyboard();
+    document.getElementById('maxAttemptsDisplay').textContent = maxAttempts;
+</script>
+
+</body>
+</html>
